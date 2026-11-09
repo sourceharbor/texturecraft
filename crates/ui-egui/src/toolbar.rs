@@ -202,11 +202,14 @@ fn scrolling_tool_controls(app: &mut TextureCraftApp, ui: &mut egui::Ui, tokens:
     });
 }
 
+/// Largest brush radius as a fraction of the mesh diagonal; size sliders show it as 100
+pub(crate) const MAX_BRUSH_SIZE: f32 = 0.25;
+
+/// Smallest brush radius as a fraction of the mesh diagonal
+pub(crate) const MIN_BRUSH_SIZE: f32 = 0.0005;
+
 /// The selected tool's icon and its settings
 fn tool_controls(app: &mut TextureCraftApp, ui: &mut egui::Ui, tokens: &Tokens) {
-    // Brush radius limits as a fraction of the mesh diagonal; the slider shows the maximum as 100
-    const MAX_BRUSH_SIZE: f32 = 0.25;
-    const MIN_BRUSH_SIZE: f32 = 0.0005;
     const DEFAULT_LAZY_DISTANCE_PX: f32 = 20.0;
     const TOOL_ICON_SIZE: f32 = 15.0;
 
@@ -278,19 +281,7 @@ fn tool_controls(app: &mut TextureCraftApp, ui: &mut egui::Ui, tokens: &Tokens) 
                 path_controls(app, ui);
             }
         }
-        Tool::PolygonFill => {
-            use texturecraft_engine::FillMode;
-
-            for (fill_mode, icon, tooltip) in [
-                (FillMode::Triangle, ic::POLYGON, tr("Triangle fill")),
-                (FillMode::UvIsland, ic::SHAPES, tr("UV island fill")),
-                (FillMode::Mesh, ic::CUBE, tr("Mesh fill")),
-            ] {
-                if icon_button(ui, icon, tooltip, app.session.tool.fill_mode == fill_mode, button_size).clicked() {
-                    app.session.tool.fill_mode = fill_mode;
-                }
-            }
-        }
+        Tool::PolygonFill => fill_mode_buttons(app, ui),
         Tool::ColorPicker => {
             ui.label(RichText::new(tr("Click the mesh to pick its material into the brush")).color(tokens.text_dim));
         }
@@ -310,6 +301,23 @@ fn mode_buttons(app: &mut TextureCraftApp, ui: &mut egui::Ui) {
     ] {
         if icon_button(ui, icon, &tip(&app.ui.keymap, label, command), app.ui.mode == mode, button_size).clicked() {
             crate::menus::invoke(app, &ui.ctx().clone(), command);
+        }
+    }
+}
+
+/// Polygon fill's fill modes (top bar and properties)
+pub fn fill_mode_buttons(app: &mut TextureCraftApp, ui: &mut egui::Ui) {
+    use texturecraft_engine::FillMode;
+
+    let button_size = ui.spacing().interact_size.y;
+    for (fill_mode, icon, tooltip) in [
+        (FillMode::Triangle, ic::TRIANGLE, tr("Triangle fill")),
+        (FillMode::Polygon, ic::PARALLELOGRAM, tr("Polygon fill")),
+        (FillMode::Mesh, ic::CUBE, tr("Mesh fill")),
+        (FillMode::UvIsland, ic::CHECKERBOARD, tr("UV island fill")),
+    ] {
+        if icon_button(ui, icon, tooltip, app.session.tool.fill_mode == fill_mode, button_size).clicked() {
+            app.session.tool.fill_mode = fill_mode;
         }
     }
 }
